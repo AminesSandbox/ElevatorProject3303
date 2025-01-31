@@ -1,9 +1,13 @@
 #include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 #include <iomanip>
 #include <sstream>
 #include <chrono>
 #include <vector>
 #include <stdexcept>
+#include <queue>
 
 struct ElevatorEvent {
     std::chrono::milliseconds time; // Time stored in milliseconds
@@ -57,54 +61,108 @@ struct ElevatorEvent {
     }
 };
 
-// Class to manage a list of ElevatorEvents
-class ElevatorEventLog {
+// Thread-safe Scheduler for ElevatorEvent
+template <typename Type> class Scheduler {
 private:
-    std::vector<ElevatorEvent> events;
+    std::queue<Type> queue;
+    std::mutex mtx;
+    std::condition_variable cv;
 
 public:
-    // Add an event with validation
-    void addEvent(std::chrono::milliseconds time, int floor, const std::string& floorButton, int carButton) {
-        try {
-            events.emplace_back(time, floor, floorButton, carButton);
-        } catch (const std::invalid_argument& e) {
-            std::cerr << "Error adding event: " << e.what() << std::endl;
-        }
+    Scheduler() = default;
+
+    void put(Type item) {
+        std::unique_lock<std::mutex> lock(mtx);
+        queue.push(item);
+        cv.notify_all();
     }
 
-    // Display all stored events
-    void displayAllEvents() const {
-        if (events.empty()) {
-            std::cout << "No events logged." << std::endl;
-            return;
+    Type get() {
+        std::unique_lock<std::mutex> lock(mtx);
+        while (queue.empty()) cv.wait(lock);
+        Type item = queue.front();
+        queue.pop();
+        cv.notify_all();
+        return item;
+    }
+};
+
+// Floor class to generate ElevatorEvents
+template <typename Type> class Floor
+{
+private:
+    std::string name;
+    Scheduler<Type>& scheduler;
+
+    Type generateEvent() { // Should not be of Type Type.... 
+        // Generate random time between 0 and 1000 milliseconds
+        std::chrono::milliseconds time(rand() % 1000);
+
+        // Generate random floor between 1 and 10
+        int floor = rand() % 10 + 1;
+
+        // Generate random floor button
+        std::string floorButton;
+        switch (rand() % 2) {
+            case 0: floorButton = "up"; break;
+            case 1: floorButton = "down"; break;
+            default: floorButton = "";
         }
 
-        std::cout << "Elevator Event Log:\n";
-        for (const auto& event : events) {
-            event.display();
-        }
+        // Generate random car button between 1 and 10
+        int carButton = rand() % 10 + 1;
+
+        return Type(time, floor, floorButton, carButton);
+    }
+
+public:
+    Floor( Scheduler<Type>& a_scheduler ) : name(), scheduler(a_scheduler) {}
+    
+    void operator()( const std::string& name ) {
+	    std::cout << name << "(" << std::this_thread::get_id() << ") produced " << std::endl;
+	    scheduler.put(generateEvent());
+	    std::cout << name << "(" << std::this_thread::get_id() << ") put in scheduler " << std::endl;
+	    std::this_thread::sleep_for( std::chrono::milliseconds( 500 ) );
+    }
+};
+
+// Elevator class to process Scheduler Requests
+template <typename Type> class Elevator
+{
+private:
+    std::string name;
+    Scheduler<Type>& scheduler;
+
+public:
+    Elevator( Scheduler<Type>& a_scheduler ) : name(), scheduler(a_scheduler) {}
+    void operator()( const std::string& name ) {
+	    std::cout << name << "(" << std::this_thread::get_id() << ") ready to consume " << std::endl;
+	    Type item = scheduler.get();
+	    std::cout << name << "(" << std::this_thread::get_id() << ") consumed " << std::endl;
+	    std::this_thread::sleep_for( std::chrono::seconds( 1 ) );
     }
 };
 
 int main() {
-    ElevatorEventLog log;
 
-    // Example events
-    log.addEvent(std::chrono::hours(3) + std::chrono::minutes(15) + std::chrono::seconds(42) + std::chrono::milliseconds(250),
-                 5, "up", 2);
+    // Create a Scheduler object
+    Scheduler<ElevatorEvent> scheduler;
 
-    log.addEvent(std::chrono::hours(4) + std::chrono::minutes(5) + std::chrono::seconds(10) + std::chrono::milliseconds(500),
-                 7, "down", 3);
+    // Create a Floor object
+    Floor<ElevatorEvent> floor(scheduler);
 
-    log.addEvent(std::chrono::hours(6) + std::chrono::minutes(30) + std::chrono::seconds(20) + std::chrono::milliseconds(750),
-                 2, "", 1);  // No floor button pressed
+    // Create a Consumer object
+    Elevator<ElevatorEvent> elevator(scheduler);
 
-    log.addEvent(std::chrono::hours(7) + std::chrono::minutes(45) + std::chrono::seconds(5) + std::chrono::milliseconds(300),
-                 10, "left", 4); // Invalid input, should trigger an error
+    // Create a thread for the Floor object
+    std::thread floorThread(floor, "Floor");
 
-    // Display all events
-    log.displayAllEvents();
+    // Create a thread for the Consumer object
+    std::thread elevatorThread(elevator, "Elevator");
+
+    // Join the threads
+    floorThread.join();
+    elevatorThread.join();
 
     return 0;
 }
-
