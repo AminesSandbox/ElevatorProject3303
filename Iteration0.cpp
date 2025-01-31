@@ -176,6 +176,10 @@ int main() {
 
     // Join the threads
     floorThread.join();
+    floorThread2.join();
+    floorThread3.join();
+    floorThread4.join();
+    floorThread5.join();
     elevatorThread.join();
 
     return 0;
