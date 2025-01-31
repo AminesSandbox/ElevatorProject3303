@@ -52,12 +52,13 @@ struct ElevatorEvent {
     }
 
     // Display function for debugging
-    void display() const {
-        std::cout << "Time: " << getFormattedTime() 
-                  << ", Floor: " << floor 
-                  << ", Floor Button: " << (floorButton.empty() ? "None" : floorButton) 
-                  << ", Car Button: " << carButton 
-                  << std::endl;
+    std::string display() const {
+        std::ostringstream oss;
+        oss << "Time: " << getFormattedTime() 
+            << ", Floor: " << floor 
+            << ", Floor Button: " << (floorButton.empty() ? "None" : floorButton) 
+            << ", Car Button: " << carButton;
+        return oss.str();
     }
 };
 
@@ -94,7 +95,7 @@ private:
     std::string name;
     Scheduler<Type>& scheduler;
 
-    Type generateEvent() { // Should not be of Type Type.... 
+    Type generateEvent() { // Should not be of Type Type.... but wtvr for now...
         // Generate random time between 0 and 1000 milliseconds
         std::chrono::milliseconds time(rand() % 1000);
 
@@ -119,9 +120,10 @@ public:
     Floor( Scheduler<Type>& a_scheduler ) : name(), scheduler(a_scheduler) {}
     
     void operator()( const std::string& name ) {
-	    std::cout << name << "(" << std::this_thread::get_id() << ") produced " << std::endl;
-	    scheduler.put(generateEvent());
-	    std::cout << name << "(" << std::this_thread::get_id() << ") put in scheduler " << std::endl;
+	    std::cout << name << "(" << std::this_thread::get_id() << ") generated task " << std::endl;
+        ElevatorEvent item = generateEvent();
+	    scheduler.put(item);
+	    std::cout << name << "(" << std::this_thread::get_id() << ") put in scheduler " << item.display() << std::endl;
 	    std::this_thread::sleep_for( std::chrono::milliseconds( 500 ) );
     }
 };
@@ -136,9 +138,9 @@ private:
 public:
     Elevator( Scheduler<Type>& a_scheduler ) : name(), scheduler(a_scheduler) {}
     void operator()( const std::string& name ) {
-	    std::cout << name << "(" << std::this_thread::get_id() << ") ready to consume " << std::endl;
-	    Type item = scheduler.get();
-	    std::cout << name << "(" << std::this_thread::get_id() << ") consumed " << std::endl;
+	    std::cout << name << "(" << std::this_thread::get_id() << ") ready to process task " << std::endl;
+	    ElevatorEvent item = scheduler.get();
+	    std::cout << name << "(" << std::this_thread::get_id() << ") processing task. " << item.display() << std::endl;
 	    std::this_thread::sleep_for( std::chrono::seconds( 1 ) );
     }
 };
@@ -156,6 +158,8 @@ int main() {
 
     // Create a thread for the Floor object
     std::thread floorThread(floor, "Floor");
+
+    std::this_thread::sleep_for( std::chrono::seconds( 1 ) );
 
     // Create a thread for the Consumer object
     std::thread elevatorThread(elevator, "Elevator");
