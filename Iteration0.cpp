@@ -10,14 +10,20 @@
 #include <queue>
 
 struct ElevatorEvent {
-    std::chrono::milliseconds time; // Time stored in milliseconds
+    struct tm timestamp;            // timestamp of the request in tm format
     int floor;                      // Floor number
     std::string floorButton;        // "up", "down", or empty string ""
     int carButton;                  // Holds an integer value for the car button
 
+    // Expected file structure:
+    // current time in secs current time in ms
+    // 1617751896 250 
+    // 1617751900 500
+    // 1617751920 750
+
     // Constructor with validation
-    ElevatorEvent(std::chrono::milliseconds t, int f, std::string fb, int cb) 
-        : time(t), floor(f), carButton(cb) {
+    ElevatorEvent(struct tm t, int f, std::string fb, int cb) 
+        : timestamp(t), floor(f), carButton(cb) {
         
         // Validate floorButton input
         if (fb != "up" && fb != "down" && !fb.empty()) {
@@ -26,35 +32,10 @@ struct ElevatorEvent {
         floorButton = std::move(fb);
     }
 
-    // Function to format time as hh:mm:ss.mmm
-    std::string getFormattedTime() const {
-        using namespace std::chrono;
-
-        // Extract total milliseconds as a raw value
-        auto total_ms = time.count();
-
-        // Compute hours, minutes, seconds, and milliseconds
-        int hours = total_ms / (1000 * 60 * 60);
-        total_ms %= (1000 * 60 * 60);
-        int minutes = total_ms / (1000 * 60);
-        total_ms %= (1000 * 60);
-        int seconds = total_ms / 1000;
-        int milliseconds = total_ms % 1000;
-
-        // Format output
-        std::ostringstream oss;
-        oss << std::setw(2) << std::setfill('0') << hours << ":"
-            << std::setw(2) << std::setfill('0') << minutes << ":"
-            << std::setw(2) << std::setfill('0') << seconds << "."
-            << std::setw(3) << std::setfill('0') << milliseconds;
-
-        return oss.str();
-    }
-
     // Display function for debugging
     std::string display() const {
         std::ostringstream oss;
-        oss << "Time: " << getFormattedTime() 
+        oss << "Time: " << std::put_time(&timestamp, "%Y-%m-%d %H:%M:%S") 
             << ", Floor: " << floor 
             << ", Floor Button: " << (floorButton.empty() ? "None" : floorButton) 
             << ", Car Button: " << carButton;
@@ -95,10 +76,38 @@ private:
     std::string name;
     Scheduler<Type>& scheduler;
 
+    struct tm generateRandomTM() {
+        struct tm randomTime;
+
+        // Randomize year (1900 to 2023)
+        randomTime.tm_year = rand() % 124 + 100;  // tm_year is years since 1900
+
+        // Randomize month (0 to 11)
+        randomTime.tm_mon = rand() % 12;
+
+        // Randomize day (1 to 31, depending on month)
+        randomTime.tm_mday = rand() % 31 + 1;
+
+        // Randomize hour (0 to 23)
+        randomTime.tm_hour = rand() % 24;
+
+        // Randomize minute (0 to 59)
+        randomTime.tm_min = rand() % 60;
+
+        // Randomize second (0 to 59)
+        randomTime.tm_sec = rand() % 60;
+
+        // Normalize the tm structure (adjusts tm_wday, tm_yday, etc.)
+        mktime(&randomTime);
+
+        return randomTime;
+    }
+
     // Function to generate random ElevatorEvent (for debugging purposes...)
     ElevatorEvent generateEvent(int floorNumber) {
-        // Generate random time between 0 and 1000 milliseconds
-        std::chrono::milliseconds time(rand() % 1000);
+        // Get random timestamp
+        struct tm timestamp;
+        timestamp = generateRandomTM();
 
         // Generate random floor button
         std::string floorButton;
@@ -111,7 +120,7 @@ private:
         // Generate random car button between 1 and 10
         int carButton = rand() % 10 + 1;
 
-        return ElevatorEvent(time, floorNumber, floorButton, carButton);
+        return ElevatorEvent(timestamp, floorNumber, floorButton, carButton);
     }
 
 public:
@@ -141,7 +150,7 @@ public:
             std::cout << name << "(" << std::this_thread::get_id() << ") ready to process task " << std::endl;
             ElevatorEvent item = scheduler.get();
             std::cout << name << "(" << std::this_thread::get_id() << ") processing task. " << item.display() << std::endl;
-            std::this_thread::sleep_for( std::chrono::seconds( item.floor * 2 ) );
+            std::this_thread::sleep_for( std::chrono::seconds( 1) );
             std::cout << name << "(" << std::this_thread::get_id() << ") elevator processed task. " << item.display() << std::endl;
         }
     }
