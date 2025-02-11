@@ -1,0 +1,8 @@
+@startuml
+[*] --> Idle
+
+Idle --> Busy : "Task Received"
+Busy --> Idle : "Task Processed"
+Idle --> [*] : "Shutdown"
+
+@enduml

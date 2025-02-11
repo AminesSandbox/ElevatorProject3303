@@ -1,0 +1,96 @@
+@startuml
+interface ElevatorState {
+    + moveUp(): void
+    + moveDown(): void
+    + stop(): void
+    + openDoors(): void
+    + closeDoors(): void
+}
+
+class Elevator {
+    + currentFloor: int
+    - state: ElevatorState
+    - scheduler: Scheduler
+    + setState(state: ElevatorState): void
+    + moveUp(): void
+    + moveDown(): void
+    + stop(): void
+    + openDoors(): void
+    + closeDoors(): void
+    + processRequests(): void
+}
+
+class ElevatorIdle {
+    + moveUp(): void
+    + moveDown(): void
+    + stop(): void
+    + openDoors(): void
+    + closeDoors(): void
+}
+
+class ElevatorMovingUp {
+    + moveUp(): void
+    + moveDown(): void
+    + stop(): void
+    + openDoors(): void
+    + closeDoors(): void
+}
+
+class ElevatorMovingDown {
+    + moveUp(): void
+    + moveDown(): void
+    + stop(): void
+    + openDoors(): void
+    + closeDoors(): void
+}
+
+class ElevatorBoarding {
+    + moveUp(): void
+    + moveDown(): void
+    + stop(): void
+    + openDoors(): void
+    + closeDoors(): void
+}
+
+ElevatorState <|.. ElevatorIdle
+ElevatorState <|.. ElevatorMovingUp
+ElevatorState <|.. ElevatorMovingDown
+ElevatorState <|.. ElevatorBoarding
+
+Elevator o-- ElevatorState
+
+class ElevatorEvent {
+    + timestamp: tm
+    + floor: int
+    + floorButton: std::string
+    + carButton: int
+    + display(): std::string
+}
+
+class Scheduler {
+    - queue: std::queue<ElevatorEvent>
+    - mtx: std::mutex
+    - cv: std::condition_variable
+    - state: SchedulerState
+    + put(item: ElevatorEvent): void
+    + get(): ElevatorEvent
+}
+
+enum SchedulerState {
+    IDLE
+    BUSY
+}
+
+class Floor {
+    - name: std::string
+    - scheduler: Scheduler
+    + generateEvent(floorNumber: int): ElevatorEvent
+    + operator()(name: std::string, floorNumber: int): void
+}
+
+Elevator o-- Scheduler
+Scheduler o-- ElevatorEvent
+Scheduler o-- SchedulerState
+Floor --> Scheduler: Adds Requests
+ElevatorEvent <-- Elevator: Fullfills
+@enduml

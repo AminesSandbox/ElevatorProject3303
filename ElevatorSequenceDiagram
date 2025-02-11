@@ -1,0 +1,17 @@
+@startuml
+[*] --> Idle
+
+Idle --> MovingUp : "Move Up Requested"
+Idle --> MovingDown : "Move Down Requested"
+Idle --> Boarding : "Doors Opening"
+
+MovingUp --> Idle : "Reached Destination"
+
+MovingDown --> Idle : "Reached Destination"
+
+Boarding --> Idle : "Doors Closed"
+Boarding --> MovingUp : "Move Up Requested"
+Boarding --> MovingDown : "Move Down Requested"
+
+Idle --> [*] : "Shutdown"
+@enduml
