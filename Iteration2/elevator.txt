@@ -1,0 +1,5 @@
+14:05:15.0 2 Up 4    // From floor 2, move 4 floors up (arrive at floor 6)
+14:07:30.5 6 Down 1  // From floor 6, move 1 floors down (arrive at floor 5)
+14:12:45.2 5 Up 10   // From floor 5, move 10 floors up (arrive at floor 15)
+14:20:00.0 15 Down 2 // From floor 15, move 2 floors down (arrive at floor 13)
+15:00:15.7 13 Down 6 // From floor 13, move 6 floors down (arrive at floor 7)
