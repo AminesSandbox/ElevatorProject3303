@@ -112,10 +112,12 @@ private:
             if (currentFloor < targetFloor) {
                 currentFloor++;
                 state = ElevatorState::MovingUp;
+                std::this_thread::sleep_for(std::chrono::seconds(1));
                 std::cout << "[Elevator] Moving up: " << currentFloor << std::endl;
             } else {
                 currentFloor--;
                 state = ElevatorState::MovingDown;
+                std::this_thread::sleep_for(std::chrono::seconds(1));
                 std::cout << "[Elevator] Moving down: " << currentFloor << std::endl;
             }
             std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -140,6 +142,7 @@ private:
     }
 
 public:
+    ElevatorState getState() const { return state; }
     Elevator(Scheduler<Type>& sched, Scheduler<Type>& notifier)
         : scheduler(sched), floorNotifier(notifier), state(ElevatorState::Idle), direction(Direction::Idle), currentFloor(1) {}
 
@@ -158,32 +161,24 @@ public:
 
     void moveToFloor(int targetFloor) {
         std::cout << "[Elevator] Moving to pickup floor " << targetFloor << std::endl;
-        while (currentFloor != targetFloor) {
-            if (currentFloor < targetFloor) {
-                currentFloor++;
-                std::cout << "[Elevator] Moving up: " << currentFloor << std::endl;
-            } else {
-                currentFloor--;
-                std::cout << "[Elevator] Moving down: " << currentFloor << std::endl;
-            }
-            std::this_thread::sleep_for(std::chrono::seconds(1));
+        
+        // Calculate the number of floors to move based on the direction
+        int floorsToMove = std::abs(currentFloor - targetFloor); // Absolute difference in floors
+        std::string directionStr;
+    
+        if (currentFloor < targetFloor) {
+            directionStr = "Up";  // If the current floor is lower, moving up
+        } else {
+            directionStr = "Down"; // If the current floor is higher, moving down
         }
+    
+        // Call moveByFloors to move the elevator
+        moveByFloors(floorsToMove, directionStr);
+    
         doorOperations();
     }
+
+    int getCurrentFloor() const {
+        return currentFloor;
+    }
 };
-
-int main() {
-    Scheduler<ElevatorEvent> scheduler;
-    Scheduler<ElevatorEvent> floorNotifier;
-
-    Floor<ElevatorEvent> floorReader("elevator.txt", scheduler, floorNotifier);
-    std::thread floorThread(std::ref(floorReader));
-
-    Elevator<ElevatorEvent> elevator(scheduler, floorNotifier);
-    std::thread elevatorThread(std::ref(elevator));
-
-    elevatorThread.join();
-    floorThread.join();
-
-    return 0;
-}
