@@ -201,8 +201,29 @@ public:
  
 };
 
-void floorReader(Scheduler<ElevatorEvent>* scheduler);
-void alertElevator(Scheduler<ElevatorEvent>* scheduler);
+void floorReader(Scheduler<ElevatorEvent>* scheduler) {
+    while (true) {
+        std::vector<uint8_t> packet = scheduler->receiveClient();
+        ElevatorEvent event = scheduler->processData(packet);
+        scheduler->put(event);
+    }
+}
 
+void alertElevator(Scheduler<ElevatorEvent>* scheduler) {
+    int i = 0;
+    while(true){
+        ElevatorEvent event = scheduler->get();
+        std::vector<uint8_t> data = scheduler->createData(event);
+        int result = 0;
+
+        if (i % 2 == 0) {
+            result = scheduler->sendPacket(data, data.size(), InetAddress::getLocalHost(), ELEVATOR_1);
+        }
+        else {
+            result = scheduler->sendPacket(data, data.size(), InetAddress::getLocalHost(), ELEVATOR_2);
+        }
+        i++;
+    }
+}
 #endif // SCHEDULER_H
 

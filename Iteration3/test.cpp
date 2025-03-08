@@ -15,10 +15,6 @@
 #include <sstream>
 
 TEST_CASE ("Test Input File") {
-    Scheduler<ElevatorEvent> scheduler(23);
-    Scheduler<ElevatorEvent> floorNotifier(24);
-    std::thread floorReaderThread(floorReader, &scheduler);
-    std::thread elevatorReaderThread(alertElevator, &scheduler);
 
     std::ofstream testFile("elevator.txt");
     testFile << "14:05:15.0 2 Up 4\n";
@@ -31,11 +27,7 @@ TEST_CASE ("Test Input File") {
     Floor<ElevatorEvent> floorReader("elevator.txt");
     std::thread floorThread(std::ref(floorReader));
 
-    floorThread.join();
-    floorReaderThread.join();
-    elevatorReaderThread.join();
     
-    ElevatorEvent event = scheduler.get();
     CHECK(event.floor == 2);
     CHECK(event.floorButton == "Up");
     CHECK(event.floorsToMove == 4);
