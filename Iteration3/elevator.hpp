@@ -105,6 +105,10 @@ public:
         : state(ElevatorState::Idle), direction(Direction::Idle), 
         currentFloor(1), receiveSocket(PORT), id(id) {}
 
+    int getCurrentFloor() const { return currentFloor; }
+
+    ElevatorState getState() const { return state; }
+
     void operator()() {
         while (true) {
             std::cout << "[Elevator" << id << "] Waiting for next task..." << std::endl;

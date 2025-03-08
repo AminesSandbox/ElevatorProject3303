@@ -1,14 +1,25 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
-#include "iteration2.cpp"
+
+#include "scheduler.hpp"
+
+#include "elevator_event.hpp"
+
+#include "elevator.hpp"
+
+#include "floor.hpp"
+
 #include <thread>
 #include "iostream"
 #include <chrono>
 #include <sstream>
 
 TEST_CASE ("Test Input File") {
-    Scheduler<ElevatorEvent> scheduler;
-    Scheduler<ElevatorEvent> floorNotifier;
+    Scheduler<ElevatorEvent> scheduler(23);
+    Scheduler<ElevatorEvent> floorNotifier(24);
+    std::thread floorReaderThread(floorReader, &scheduler);
+    std::thread elevatorReaderThread(alertElevator, &scheduler);
+
     std::ofstream testFile("elevator.txt");
     testFile << "14:05:15.0 2 Up 4\n";
     testFile << "14:07:30.5 6 Down 1\n";
@@ -17,9 +28,12 @@ TEST_CASE ("Test Input File") {
     testFile << "15:00:15.7 13 Down 6\n";
     testFile.close();
     
-    Floor<ElevatorEvent> floorReader("elevator.txt", scheduler, floorNotifier);
+    Floor<ElevatorEvent> floorReader("elevator.txt");
     std::thread floorThread(std::ref(floorReader));
+
     floorThread.join();
+    floorReaderThread.join();
+    elevatorReaderThread.join();
     
     ElevatorEvent event = scheduler.get();
     CHECK(event.floor == 2);
@@ -37,7 +51,7 @@ TEST_CASE("ElevatorEvent displays correct message") {
 
 // Test Scheduler functionality
 TEST_CASE("Scheduler handles put and get correctly") {
-    Scheduler<ElevatorEvent> scheduler;
+    Scheduler<ElevatorEvent> scheduler(23);
     struct tm timestamp = {};
     ElevatorEvent event(timestamp, 6, "Down", 1);
     
@@ -50,9 +64,10 @@ TEST_CASE("Scheduler handles put and get correctly") {
 
 // Test Elevator movement
 TEST_CASE("Elevator moves to correct floor") {
-    Scheduler<ElevatorEvent> scheduler;
-    Scheduler<ElevatorEvent> floorNotifier;
-    Elevator<ElevatorEvent> elevator(scheduler, floorNotifier);
+    Scheduler<ElevatorEvent> scheduler(23);
+    Scheduler<ElevatorEvent> floorNotifier(24);
+    Elevator<ElevatorEvent> elevator(69, 1);
+
     struct tm timestamp = {};
     ElevatorEvent event(timestamp, 5, "Up", 10);
     
@@ -64,9 +79,9 @@ TEST_CASE("Elevator moves to correct floor") {
 
 // Test Elevator states
 TEST_CASE("Elevator transitions through all states correctly") {
-    Scheduler<ElevatorEvent> scheduler;
-    Scheduler<ElevatorEvent> floorNotifier;
-    Elevator<ElevatorEvent> elevator(scheduler, floorNotifier);
+    Scheduler<ElevatorEvent> scheduler(23);
+    Scheduler<ElevatorEvent> floorNotifier(24);
+    Elevator<ElevatorEvent> elevator(69, 1);
 
     std::thread elevatorThread([&]() {
         elevator.moveToFloor(3);  // Start moving elevator to floor 3

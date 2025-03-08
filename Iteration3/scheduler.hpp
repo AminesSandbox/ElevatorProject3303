@@ -14,7 +14,8 @@
 
 #define FLOORREADER 23
 #define FLOORNOTIFIER 24
-#define ELEVATOR 69
+#define ELEVATOR_1 69
+#define ELEVATOR_2 70
 
 #include <queue>
 #include <mutex>
@@ -23,6 +24,7 @@
 #include <unistd.h>
 #include <string>
 #include <time.h>
+#include "elevator_event.hpp"
 #include "Datagram1.h"
 
 // Enum for different scheduler states
@@ -199,4 +201,8 @@ public:
  
 };
 
+void floorReader(Scheduler<ElevatorEvent>* scheduler);
+void alertElevator(Scheduler<ElevatorEvent>* scheduler);
+
 #endif // SCHEDULER_H
+

@@ -12,8 +12,7 @@
 #define ELEVATOR_2 70
 
 void floorReader(Scheduler<ElevatorEvent>* scheduler) {
-
-    for (int i = 0; i < 5; i++) {
+    while (true) {
         std::vector<uint8_t> data = scheduler->receiveClient();
         ElevatorEvent packetInfo = scheduler->processData(data);
         scheduler->put(packetInfo);
@@ -21,34 +20,32 @@ void floorReader(Scheduler<ElevatorEvent>* scheduler) {
 }
 
 void alertElevator(Scheduler<ElevatorEvent>* scheduler) {
-
-    for (int i = 0; i < 5; i++) {
+    int i = 0;
+    while(true){
         ElevatorEvent event = scheduler->get();
         std::vector<uint8_t> data = scheduler->createData(event);
         int result = 0;
+
         if (i % 2 == 0) {
             result = scheduler->sendPacket(data, data.size(), InetAddress::getLocalHost(), ELEVATOR_1);
         }
         else {
             result = scheduler->sendPacket(data, data.size(), InetAddress::getLocalHost(), ELEVATOR_2);
         }
+        i++;
     }
-
 }
 
+#ifndef DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 int main() {
-
     std::cout << "[Scheduler] Request input from the Floor Subsystem" << std::endl;
     Scheduler<ElevatorEvent> scheduler(23);
     Scheduler<ElevatorEvent> floorNotifier(24);
-    std::thread floorThread(floorReader, &scheduler);
-    //Move later
-    floorThread.join();
 
+    std::thread floorThread(floorReader, &scheduler);
     std::thread elevatorThread(alertElevator, &scheduler);
 
     while (true) {
-
         std::vector<uint8_t> data = floorNotifier.receiveClient();
         if (static_cast<int>(data[0]) == 1 && static_cast<int>(data[1]) == 1) {
             std::cout << "[Scheduler] Request completed\n";
@@ -58,6 +55,8 @@ int main() {
             floorNotifier.put(packetInfo);
         }
     }
+
+    floorThread.join();
     elevatorThread.join();
 }
-
+#endif
