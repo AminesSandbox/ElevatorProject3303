@@ -11,27 +11,47 @@
 #include <chrono>
 #include <sstream>
 
-TEST_CASE ("Packet Being Sent") {
+TEST_CASE ("Sending Packet from Floor to Scheduler") {
     Scheduler<ElevatorEvent> scheduler(23);
-    Floor<ElevatorEvent> floor("requests.txt");
-    Elevator<ElevatorEvent> elevator(69, 1);
+    Scheduler<ElevatorEvent> floorNotifier(24);
+    Floor<ElevatorEvent> floorReader("elevator.txt");
 
-    std::thread schedulerThread([&scheduler]() { floorReader(&scheduler); });
-    std::thread elevatorThread([&elevator]() { elevator(); });
-
-    // Simulate sending a packet from Floor to Scheduler
-    std::vector<uint8_t> packet = floor.createData("12:00:00:000", "Up", 1, 5);
-    floor.sendPacket(packet, packet.size(), InetAddress::getLocalHost(), SCHEDULER);
+    //Sending floor packet to scheduler
+    std::vector<uint8_t> packetToSend = floorReader.createData("12:00:00:000", "Up", 1, 5);
+    floorNotifier.sendPacket(packetToSend, packetToSend.size(), InetAddress::getLocalHost(), SCHEDULER);
 
     // Simulate receiving and processing the packet in Scheduler
     std::vector<uint8_t> receivedPacket = scheduler.receiveClient();
-    ElevatorEvent event = scheduler.processData(receivedPacket);
-    scheduler.put(event);
 
-    // Simulate Elevator processing the request
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-    CHECK(elevator.getCurrentFloor() == 1);
-
-    schedulerThread.join();
-    elevatorThread.join();
+    CHECK(packetToSend == receivedPacket);
 }
+
+
+TEST_CASE ("Sending Packet from Scheduler to Elevator") {
+    Scheduler<ElevatorEvent> scheduler(23);
+    Elevator<ElevatorEvent> elevator(69, 1);
+
+    //Sending packet to elevator
+    std::vector<uint8_t> packetToSend = scheduler.createData(ElevatorEvent(std::tm(), 1, "Up", 5));
+    scheduler.sendPacket(packetToSend, packetToSend.size(), InetAddress::getLocalHost(), ELEVATOR_1);
+
+    // Simulate receiving and processing the packet in Elevator
+    std::vector<uint8_t> receivedPacket = elevator.receivePacket();
+
+    CHECK(packetToSend == receivedPacket);
+}
+
+TEST_CASE ("Sending Packet from Elevator to Scheduler") {
+    Scheduler<ElevatorEvent> floorNotifier(24);
+    Elevator<ElevatorEvent> elevator(69, 1);
+
+    std::vector<uint8_t> success_msg(14,1);
+    elevator.sendPacket(success_msg, success_msg.size(), InetAddress::getLocalHost(), FLOORNOTIFIER);
+
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    std::vector<uint8_t> receivedPacket = floorNotifier.receiveClient();
+
+    CHECK(success_msg == receivedPacket);
+}
+
