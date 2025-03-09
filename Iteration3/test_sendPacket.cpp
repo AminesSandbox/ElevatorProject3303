@@ -26,7 +26,6 @@ TEST_CASE ("Sending Packet from Floor to Scheduler") {
     CHECK(packetToSend == receivedPacket);
 }
 
-
 TEST_CASE ("Sending Packet from Scheduler to Elevator") {
     Scheduler<ElevatorEvent> scheduler(23);
     Elevator<ElevatorEvent> elevator(69, 1);

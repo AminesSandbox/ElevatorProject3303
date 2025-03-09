@@ -80,13 +80,22 @@ private:
         state = ElevatorState::Idle;
     }
 
+public:
+    Elevator(int PORT, int id)
+        : state(ElevatorState::Idle), direction(Direction::Idle), 
+        currentFloor(1), receiveSocket(PORT), id(id) {}
+
+    int getCurrentFloor() const { return currentFloor; }
+
+    ElevatorState getState() const { return state; }
+
     /*
     * Processes the elevator event by moving the elevator to the pickup floor,
     * opening and closing the doors, and moving to the destination floor. The
     * elevator notifies the floor subsystem of its actions before and after
     * moving between floors.
     */
-    void processRequest(const ElevatorEvent& item) {
+   void processRequest(const ElevatorEvent& item) {
         if (currentFloor != item.floor) {
             std::cout << "[Elevator" << id << "] Moving to pickup floor " << item.floor << std::endl;
             moveToFloor(item.floor);
@@ -99,15 +108,6 @@ private:
         /* packet_data = createData(item); */
         sendPacket(packet_data, packet_data.size(), InetAddress::getLocalHost(), FLOORNOTIFIER);
     }
-
-public:
-    Elevator(int PORT, int id)
-        : state(ElevatorState::Idle), direction(Direction::Idle), 
-        currentFloor(1), receiveSocket(PORT), id(id) {}
-
-    int getCurrentFloor() const { return currentFloor; }
-
-    ElevatorState getState() const { return state; }
 
     void operator()() {
         while (true) {

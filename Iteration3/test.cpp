@@ -86,24 +86,36 @@ TEST_CASE("Elevator transitions through all states correctly when idle") {
     elevatorThread.join();  
 }
 
+// Test Elevator states (Moving Floors)
 TEST_CASE("Elevator transitions through all states correctly when moving") {
     Scheduler<ElevatorEvent> scheduler(23);
     Scheduler<ElevatorEvent> floorNotifier(24);
     Elevator<ElevatorEvent> elevator(69, 1);
+    
+    struct tm timestamp = {};
+    timestamp.tm_year = 2023 - 1900; 
+    timestamp.tm_mon = 9;            
+    timestamp.tm_mday = 25;      
+    timestamp.tm_hour = 10;    
+    timestamp.tm_min = 30;  
+    timestamp.tm_sec = 0; 
+    ElevatorEvent event(timestamp, 6, "Down", 1);
 
     std::thread elevatorThread([&]() {
-        elevator.moveToFloor(10);  // Start moving elevator to floor 3
+        elevator.processRequest(event);  // Start moving elevator to floor 6
     });
 
     std::vector<ElevatorState> expectedStates = {
-        ElevatorState::MovingUp,ElevatorState::DoorOpening, ElevatorState::DoorOpen,
+        ElevatorState::DoorOpening, ElevatorState::DoorOpen,
+        ElevatorState::DoorClosing, ElevatorState::MovingDown,
+        ElevatorState::DoorOpening, ElevatorState::DoorOpen,
         ElevatorState::DoorClosing, ElevatorState::Idle
     };
 
     std::vector<ElevatorState> actualStates;
 
     ElevatorState lastState = ElevatorState::Idle;
-    for (int i = 0; i < 12; i++) {
+    for (int i = 0; i < 20; i++) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
 
         //collect all states elevator goes through
@@ -113,11 +125,15 @@ TEST_CASE("Elevator transitions through all states correctly when moving") {
             lastState = state;
         }
     }
+    std::cout << "Actual states: ";
+    for (const auto& state : actualStates) {
+        std::cout << static_cast<int>(state) << " ";
+    }
+    std::cout << std::endl;
 
     for (size_t i = 0; i < expectedStates.size(); ++i) {
         CHECK(actualStates[i] == expectedStates[i]);
     }
-
 
     elevatorThread.join();  
 }
