@@ -9,6 +9,7 @@
 TEST_CASE ("Test Input File") {
     Scheduler<ElevatorEvent> scheduler;
     Scheduler<ElevatorEvent> floorNotifier;
+    
     std::ofstream testFile("elevator.txt");
     testFile << "14:05:15.0 2 Up 4\n";
     testFile << "14:07:30.5 6 Down 1\n";
