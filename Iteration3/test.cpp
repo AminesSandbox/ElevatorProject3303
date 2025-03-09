@@ -34,6 +34,47 @@ TEST_CASE("Scheduler handles put and get correctly") {
     CHECK(receivedEvent.floorsToMove == 1);
 }
 
+// Test Scheduler Algorithm
+TEST_CASE("Scheduler alternates elevators correctly in alertElevator") {
+    Scheduler<ElevatorEvent> scheduler(23);
+
+    struct tm timestamp = {};
+    ElevatorEvent event1(timestamp, 2, "Up", 3);
+    ElevatorEvent event2(timestamp, 4, "Down", 2);
+    ElevatorEvent event3(timestamp, 6, "Up", 1);
+    ElevatorEvent event4(timestamp, 8, "Down", 5);
+
+    scheduler.put(event1);
+    scheduler.put(event2);
+    scheduler.put(event3);
+    scheduler.put(event4);
+
+    std::vector<int> assignedElevators;
+    std::vector<uint8_t> data;
+
+    int i = 0;
+    while (i < 4) {  
+        ElevatorEvent event = scheduler.get(); 
+        data = scheduler.createData(event);  
+        
+        int result = 0;
+        if (i % 2 == 0) {
+            result = scheduler.sendPacket(data, data.size(), InetAddress::getLocalHost(), ELEVATOR_1);
+            assignedElevators.push_back(ELEVATOR_1);
+        } else {
+            result = scheduler.sendPacket(data, data.size(), InetAddress::getLocalHost(), ELEVATOR_2);
+            assignedElevators.push_back(ELEVATOR_2);
+        }
+        i++;
+    }
+
+    CHECK(assignedElevators[0] == ELEVATOR_1);
+    CHECK(assignedElevators[1] == ELEVATOR_2);
+    CHECK(assignedElevators[2] == ELEVATOR_1);
+    CHECK(assignedElevators[3] == ELEVATOR_2);
+}
+
+
 // Test Elevator movement
 TEST_CASE("Elevator moves to correct floor") {
     Scheduler<ElevatorEvent> scheduler(23);

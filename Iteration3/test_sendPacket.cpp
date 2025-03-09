@@ -53,4 +53,3 @@ TEST_CASE ("Sending Packet from Elevator to Scheduler") {
 
     CHECK(success_msg == receivedPacket);
 }
-
