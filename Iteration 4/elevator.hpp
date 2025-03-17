@@ -21,7 +21,7 @@
 #include "scheduler.hpp"
 #include "elevator_event.hpp"
 
-enum class ElevatorState { Idle, MovingUp, MovingDown, DoorOpening, DoorOpen, DoorClosing, MinorFault, MajorFault };
+enum class ElevatorState { Idle, MovingUp, MovingDown, DoorOpening, DoorOpen, DoorClosing };
 enum class Direction { Up, Down, Idle };
 
 template <typename Type>
