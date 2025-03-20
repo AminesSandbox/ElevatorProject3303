@@ -58,18 +58,16 @@ public:
         packet_data.push_back(floor % 10);
 
         if (floorButton == "Up") {
-            packet_data.push_back(0x1);  // Elevator moving Up
+            packet_data.push_back(1);  // Elevator moving Up
         } else if (floorButton == "Down") {
-            packet_data.push_back(0x0); // Elevator moving Down
+            packet_data.push_back(0); // Elevator moving Down
         } else if (floorButton == "MinorFault") {
-            packet_data.push_back(0x2); // minor error state
+            packet_data.push_back(2); // minor error state
         } else if (floorButton == "MajorFault") {
-            packet_data.push_back(0x3); // major error state
+            packet_data.push_back(3); // major error state
         } else {
             packet_data.push_back(0xF); // unknown state
         }
-
-        packet_data.push_back(floorButton.compare("Down") ? 1 : 0);
         packet_data.push_back(floorsToMove / 10 % 10);
         packet_data.push_back(floorsToMove % 10);
         return packet_data;

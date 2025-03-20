@@ -156,7 +156,21 @@ public:
             int secInt = static_cast<int>(data[6]) * 10 + static_cast<int>(data[7]);
             struct tm timestamp = {.tm_sec = secInt, .tm_min = minInt, .tm_hour = hourInt};
             int floor = static_cast<int>(data[9]) * 10 + static_cast<int>(data[10]);
-            std::string floorButton = static_cast<int>(data[11]) == 1 ? "Up" : "Down";
+
+            std::string floorButton;
+
+            if (static_cast<int>(data[11]) == 1) {
+                floorButton = "Up";  // Elevator moving Up
+            } else if (static_cast<int>(data[11]) == 0) {
+                floorButton = "Down"; // Elevator moving Down
+            } else if (static_cast<int>(data[11]) == 2) {
+                floorButton = "MinorFault"; // minor error state
+            } else if (static_cast<int>(data[11]) == 3) {
+                floorButton = "MajorFault"; // major error state
+            } else {
+                floorButton = "unknown"; // unknown state
+            }
+
             int floorsToMove = static_cast<int>(data[12]) * 10 + static_cast<int>(data[13]);
             /* std::cout << floor << std::endl; */
             /* std::cout << floorButton << std::endl; */

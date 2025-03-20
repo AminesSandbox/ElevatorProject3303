@@ -21,7 +21,7 @@
 #include "scheduler.hpp"
 #include "elevator_event.hpp"
 
-enum class ElevatorState { Idle, MovingUp, MovingDown, DoorOpening, DoorOpen, DoorClosing };
+enum class ElevatorState { Idle, MovingUp, MovingDown, DoorOpening, DoorOpen, DoorClosing, MinorFault, MajorFault };
 enum class Direction { Up, Down, Idle };
 
 template <typename Type>
@@ -88,7 +88,7 @@ public:
     int getCurrentFloor() const { return currentFloor; }
 
     ElevatorState getState() const { return state; }
-
+    
     /*
     * Processes the elevator event by moving the elevator to the pickup floor,
     * opening and closing the doors, and moving to the destination floor. The
@@ -105,7 +105,7 @@ public:
         std::vector<uint8_t> packet_data = createData(item);
         sendPacket(packet_data, packet_data.size(), InetAddress::getLocalHost(), FLOORNOTIFIER);
         moveByFloors(item.floorsToMove, item.floorButton);
-        /* packet_data = createData(item); */
+
         sendPacket(packet_data, packet_data.size(), InetAddress::getLocalHost(), FLOORNOTIFIER);
     }
 
@@ -176,7 +176,21 @@ public:
             int secInt = static_cast<int>(data[6]) * 10 + static_cast<int>(data[7]);
             struct tm timestamp = {.tm_sec = secInt, .tm_min = minInt, .tm_hour = hourInt};
             int floor = static_cast<int>(data[9]) * 10 + static_cast<int>(data[10]);
-            std::string floorButton = static_cast<int>(data[11]) == 1 ? "Up" : "Down";
+            
+            std::string floorButton;
+            
+            if (data[11] == 1) {
+                floorButton = "Up";  // Elevator moving Up
+            } else if (data[11] == 0) {
+                floorButton = "Down"; // Elevator moving Down
+            } else if (data[11] == 2) {
+                floorButton = "MinorError"; // minor error state
+            } else if (data[11] == 3) {
+                floorButton = "MajorError"; // major error state
+            } else {
+                floorButton = "Error - Unknown State";; // unknown state
+            }
+
             int floorsToMove = static_cast<int>(data[12]) * 10 + static_cast<int>(data[13]);
             /* std::cout << floor << std::endl; */
             /* std::cout << floorButton << std::endl; */
@@ -206,7 +220,17 @@ public:
         packet_data.push_back(msec % 10);
         packet_data.push_back(item.floor / 10 % 10);
         packet_data.push_back(item.floor % 10);
-        packet_data.push_back(item.floorButton.compare("Down") ? 1 : 0);
+        if (item.floorButton == "Up") {
+            packet_data.push_back(1);  // Elevator moving Up
+        } else if (item.floorButton == "Down") {
+            packet_data.push_back(0); // Elevator moving Down
+        } else if (item.floorButton == "MinorFault") {
+            packet_data.push_back(2); // minor error state
+        } else if (item.floorButton == "MajorFault") {
+            packet_data.push_back(3); // major error state
+        } else {
+            packet_data.push_back(0xF); // unknown state
+        }
         packet_data.push_back(item.floorsToMove / 10 % 10);
         packet_data.push_back(item.floorsToMove % 10);
         /* std::cout << "Printing Packet: "; */
