@@ -39,16 +39,23 @@ private:
     * the current floor until it reaches the target floor. The elevator state
     * is updated to MovingUp or MovingDown as it moves between floors.
     */
-    void moveByFloors(int floorsToMove, const std::string& directionStr) {
+    bool moveByFloors(int floorsToMove, const std::string& directionStr) {
         int targetFloor = (directionStr == "Up") ? currentFloor + floorsToMove : currentFloor - floorsToMove;
         std::cout << "[Elevator" << id << "] Moving from Floor " << currentFloor 
                   << " to Floor " << targetFloor << std::endl;
 
         while (currentFloor != targetFloor) {
+
+            if (isFault()) {
+                return false;
+            }
+
             if (currentFloor < targetFloor) {
                 currentFloor++;
                 state = ElevatorState::MovingUp;
                 std::cout << "[Elevator" << id << "] Moving up: " << currentFloor << std::endl;
+                std::cout << "[Elevator] Elevator state: " << static_cast<int>(state) << std::endl;
+
             } else {
                 currentFloor--;
                 state = ElevatorState::MovingDown;
@@ -56,7 +63,7 @@ private:
             }
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
-        doorOperations();
+        return true;
     }
 
     /*
@@ -65,19 +72,44 @@ private:
     * open, remain open, and close, respectively. The elevator waits for 2
     * seconds between each state change.
     */
-    void doorOperations() {
+    bool doorOperations() {
         state = ElevatorState::DoorOpening;
         std::cout << "[Elevator" << id << "] Doors opening at floor: " << currentFloor << std::endl;
         std::this_thread::sleep_for(std::chrono::seconds(2));
+
+        if (isFault()) {
+            return false;
+        }
 
         state = ElevatorState::DoorOpen;
         std::cout << "[Elevator" << id << "] Boarding at floor: " << currentFloor << std::endl;
         std::this_thread::sleep_for(std::chrono::seconds(2));
 
+        if (isFault()) {
+            return false;
+        }
+        
+
         state = ElevatorState::DoorClosing;
         std::cout << "[Elevator" << id << "] Doors closing at floor: " << currentFloor << std::endl;
         std::this_thread::sleep_for(std::chrono::seconds(2));
         state = ElevatorState::Idle;
+
+        if (isFault()) {
+            return false;
+        }
+        return true;
+    }
+
+    /*
+    Returns whether the elvator is in a fault state
+    */
+    bool isFault() {
+        if (state == ElevatorState::MinorFault || state == ElevatorState::MajorFault) {
+            std::cout << "[Elevator" << id << "] Elevator is in a fault state: " << std::endl;
+            return true;
+        }
+        return false;
     }
 
 public:
@@ -96,15 +128,28 @@ public:
     * moving between floors.
     */
    void processRequest(const ElevatorEvent& item) {
+
         if (currentFloor != item.floor) {
             std::cout << "[Elevator" << id << "] Moving to pickup floor " << item.floor << std::endl;
             moveToFloor(item.floor);
+            doorOperations();
         } else {
             std::cout << "[Elevator" << id << "] Already at pickup floor: " << currentFloor << std::endl;
         }
+
+        if (isFault()) {
+            return;
+        }
+
         std::vector<uint8_t> packet_data = createData(item);
         sendPacket(packet_data, packet_data.size(), InetAddress::getLocalHost(), FLOORNOTIFIER);
-        moveByFloors(item.floorsToMove, item.floorButton);
+
+        if (!moveByFloors(item.floorsToMove, item.floorButton)){
+            return;
+        }
+        if (!doorOperations()){
+            return;
+        }
 
         sendPacket(packet_data, packet_data.size(), InetAddress::getLocalHost(), FLOORNOTIFIER);
     }
@@ -113,17 +158,26 @@ public:
         while (true) {
             std::cout << "[Elevator" << id << "] Waiting for next task..." << std::endl;
             std::vector<uint8_t> data = receivePacket();
-            if (static_cast<int>(data[0]) == 0 && static_cast<int>(data[1]) == 1) {
+            if (static_cast<int>(data[0]) == 0 && static_cast<int>(data[1]) == 1 && ElevatorState::Idle == state) {
 
                 ElevatorEvent item = processData(data);
                 std::cout << "[Elevator" << id << "] Processing: " << item.display() << std::endl;
-                processRequest(item);
+                processRequest(item); // will exit early if in a fault state
 
                 std::this_thread::sleep_for(std::chrono::seconds(1));
-                std::vector<uint8_t> success_msg(14,1);
-                sendPacket(success_msg, success_msg.size(), InetAddress::getLocalHost(), FLOORNOTIFIER);
-            }
 
+                if(isFault()) {
+                    std::cout << "[Elevator" << id << "] Elevator is in a fault state: " << std::endl;
+                    std::cout << "[Elevator" << id << "] state: ";
+                    std::cout << static_cast<int>(state) << std::endl;
+                    std::cout << "[Elevator" << id << "] Elevator Awaiting Scheduler response. " << std::endl;
+                } else {
+                    std::vector<uint8_t> success_msg(14,1);
+                    sendPacket(success_msg, success_msg.size(), InetAddress::getLocalHost(), FLOORNOTIFIER);
+                }
+            }else{
+                std::cout << "[Elevator" << id << "] Unable to process request, Elevator not in IDLE state" << std::endl;
+            }
         }
     }
 
@@ -133,11 +187,14 @@ public:
             return;
         }
         while (currentFloor != targetFloor) {
+            if (isFault()) {
+                return;
+            }
+
             currentFloor += (currentFloor < targetFloor) ? 1 : -1;
             std::cout << "[Elevator" << id << "] Passing floor: " << currentFloor << std::endl;
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
-        doorOperations();
     }
 
     std::vector<uint8_t> receivePacket() {
@@ -146,7 +203,7 @@ public:
         DatagramPacket schedulerPacket(packetData, packetData.size());
 
         try {
-            /* std::cout << "Server: Waiting for Packet." << std::endl; */
+            std::cout << "Server: Waiting for Packet." << std::endl;
             receiveSocket.receive(schedulerPacket);
         } catch (const std::runtime_error& e ) {
             std::cout << "IO Exception: likely:"
@@ -245,7 +302,7 @@ public:
         /* printPacket(data, sendPacket, 1); */
 
         try {
-                sendSocket.send(sendPacket);
+            sendSocket.send(sendPacket);
         } catch ( const std::runtime_error& e ) {
             std::cerr << e.what() << std::endl;
             exit(1);
@@ -254,7 +311,9 @@ public:
         return;
     }
 
-
+    void setState(ElevatorState state) {
+        this->state = state;
+    }
 };
 
 #endif // ELEVATOR_H
