@@ -54,7 +54,6 @@ private:
                 currentFloor++;
                 state = ElevatorState::MovingUp;
                 std::cout << "[Elevator" << id << "] Moving up: " << currentFloor << std::endl;
-                std::cout << "[Elevator] Elevator state: " << static_cast<int>(state) << std::endl;
 
             } else {
                 currentFloor--;
@@ -203,7 +202,7 @@ public:
         DatagramPacket schedulerPacket(packetData, packetData.size());
 
         try {
-            std::cout << "Server: Waiting for Packet." << std::endl;
+            // std::cout << "Server: Waiting for Packet." << std::endl;
             receiveSocket.receive(schedulerPacket);
         } catch (const std::runtime_error& e ) {
             std::cout << "IO Exception: likely:"
