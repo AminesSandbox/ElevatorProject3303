@@ -57,10 +57,10 @@ int main() {
     std::thread faultInjector(insertMinorFault, &elevator1, ElevatorState::MovingUp);
 
 
-    // Elevator<ElevatorEvent> elevator2(70, 2);
+    Elevator<ElevatorEvent> elevator2(70, 2);
     std::thread elevator1Thread(std::ref(elevator1));
 
-    // std::thread elevator2Thread(std::ref(elevator2));
+    std::thread elevator2Thread(std::ref(elevator2));
     elevator1Thread.join();
-    // elevator2Thread.join();
+    elevator2Thread.join();
 }
