@@ -34,6 +34,7 @@ private:
     DatagramSocket sendSocket;
     int id;
 
+
     /*
     * Moves the elevator to the target floor by incrementing or decrementing
     * the current floor until it reaches the target floor. The elevator state
@@ -44,26 +45,34 @@ private:
         std::cout << "[Elevator" << id << "] Moving from Floor " << currentFloor 
                   << " to Floor " << targetFloor << std::endl;
 
-        while (currentFloor != targetFloor) {
+    auto startTime = std::chrono::steady_clock::now(); // Start timer    
 
-            if (isFault()) {
-                return false;
-            }
+    while (currentFloor != targetFloor) {
+        //if (isFault()) {
+            //return false;
+        //}
 
-            if (currentFloor < targetFloor) {
-                currentFloor++;
-                state = ElevatorState::MovingUp;
-                std::cout << "[Elevator" << id << "] Moving up: " << currentFloor << std::endl;
-
-            } else {
-                currentFloor--;
-                state = ElevatorState::MovingDown;
-                std::cout << "[Elevator" << id << "] Moving down: " << currentFloor << std::endl;
-            }
-            std::this_thread::sleep_for(std::chrono::seconds(1));
+        if (currentFloor < targetFloor) {
+            currentFloor++;
+            state = ElevatorState::MovingUp;
+            std::cout << "[Elevator" << id << "] Moving up: " << currentFloor << std::endl;
+        } else {
+            currentFloor--;
+            state = ElevatorState::MovingDown;
+            std::cout << "[Elevator" << id << "] Moving down: " << currentFloor << std::endl;
         }
-        return true;
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+
+        auto elapsedTime = std::chrono::steady_clock::now() - startTime;
+        auto elapsedSeconds = std::chrono::duration_cast<std::chrono::seconds>(elapsedTime).count();
+
+        if (elapsedSeconds > 15) { // Major Fault
+            handleFloorFault();
+            return false;
+        }
     }
+    return true;
+}
 
     /*
     * Opens and closes the elevator doors at the current floor. The elevator
@@ -71,34 +80,44 @@ private:
     * open, remain open, and close, respectively. The elevator waits for 2
     * seconds between each state change.
     */
-    bool doorOperations() {
-        state = ElevatorState::DoorOpening;
-        std::cout << "[Elevator" << id << "] Doors opening at floor: " << currentFloor << std::endl;
-        std::this_thread::sleep_for(std::chrono::seconds(2));
+   bool doorOperations() {
+    state = ElevatorState::DoorOpening;
+    std::cout << "[Elevator" << id << "] Doors opening at floor: " << currentFloor << std::endl;
 
-        if (isFault()) {
-            return false;
-        }
+    auto startTime = std::chrono::steady_clock::now(); // Start timer
 
-        state = ElevatorState::DoorOpen;
-        std::cout << "[Elevator" << id << "] Boarding at floor: " << currentFloor << std::endl;
-        std::this_thread::sleep_for(std::chrono::seconds(2));
+    std::this_thread::sleep_for(std::chrono::seconds(2));
 
-        if (isFault()) {
-            return false;
-        }
-        
+    //if (isFault()) {
+        //return false;
+    //}
 
-        state = ElevatorState::DoorClosing;
-        std::cout << "[Elevator" << id << "] Doors closing at floor: " << currentFloor << std::endl;
-        std::this_thread::sleep_for(std::chrono::seconds(2));
-        state = ElevatorState::Idle;
+    state = ElevatorState::DoorOpen;
+    std::cout << "[Elevator" << id << "] Boarding at floor: " << currentFloor << std::endl;
+    std::this_thread::sleep_for(std::chrono::seconds(2));
 
-        if (isFault()) {
-            return false;
-        }
-        return true;
+    //if (isFault()) {
+        //return false;
+    //}
+
+    state = ElevatorState::DoorClosing;
+    std::cout << "[Elevator" << id << "] Doors closing at floor: " << currentFloor << std::endl;
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+    state = ElevatorState::Idle;
+
+    auto elapsedTime = std::chrono::steady_clock::now() - startTime;
+    auto elapsedSeconds = std::chrono::duration_cast<std::chrono::seconds>(elapsedTime).count();
+
+    if (elapsedSeconds > 5) { // Minor Fault
+        handleDoorFault();
+        return false;
     }
+
+    //if (isFault()) {
+        //return false;
+    //}
+    return true;
+}
 
     /*
     Returns whether the elvator is in a fault state
@@ -109,6 +128,32 @@ private:
             return true;
         }
         return false;
+    }
+
+
+    void handleFloorFault() {
+        state = ElevatorState::MajorFault;
+        std::cout << "[Elevator" << id << "] Floor Timer Fault: Elevator is stuck between floors!" << std::endl;
+        shutdown();
+    }
+
+    void handleDoorFault() {
+        state = ElevatorState::MinorFault;
+        std::cout << "[Elevator" << id << "] Door Timer Fault: Door is stuck!" << std::endl;
+        recoverDoor();
+    }
+
+    void shutdown() {
+        std::cout << "[Elevator" << id << "] Shutting down due to Major Fault!" << std::endl;
+        // Stop all operations
+        state = ElevatorState::MajorFault;
+    }
+
+    void recoverDoor() {
+        std::cout << "[Elevator" << id << "] Attempting to recover door..." << std::endl;
+        // Retry door operations
+        state = ElevatorState::Idle;
+        std::cout << "[Elevator" << id << "] Door recovered successfully!" << std::endl;
     }
 
 public:
@@ -136,9 +181,9 @@ public:
             std::cout << "[Elevator" << id << "] Already at pickup floor: " << currentFloor << std::endl;
         }
 
-        if (isFault()) {
-            return;
-        }
+        //if (isFault()) {
+            //return;
+        //}
 
         std::vector<uint8_t> packet_data = createData(item);
         sendPacket(packet_data, packet_data.size(), InetAddress::getLocalHost(), FLOORNOTIFIER);
@@ -186,9 +231,9 @@ public:
             return;
         }
         while (currentFloor != targetFloor) {
-            if (isFault()) {
-                return;
-            }
+            //if (isFault()) {
+                //return;
+            //}
 
             currentFloor += (currentFloor < targetFloor) ? 1 : -1;
             std::cout << "[Elevator" << id << "] Passing floor: " << currentFloor << std::endl;
@@ -244,8 +289,9 @@ public:
             } else if (data[11] == 3) {
                 floorButton = "MajorError"; // major error state
             } else {
-                floorButton = "Error - Unknown State";; // unknown state
+                floorButton = "Error - Unknown State"; // unknown state
             }
+
 
             int floorsToMove = static_cast<int>(data[12]) * 10 + static_cast<int>(data[13]);
             /* std::cout << floor << std::endl; */
@@ -313,6 +359,8 @@ public:
     void setState(ElevatorState state) {
         this->state = state;
     }
+
 };
+
 
 #endif // ELEVATOR_H

@@ -68,6 +68,7 @@ public:
         } else {
             packet_data.push_back(0xF); // unknown state
         }
+
         packet_data.push_back(floorsToMove / 10 % 10);
         packet_data.push_back(floorsToMove % 10);
         return packet_data;
@@ -104,26 +105,24 @@ public:
             std::cerr << "Error opening file: " << filename << std::endl;
             return;
         }
-
-        /* std::cout << "[Scheduler] Request input from the Floor Subsystem" << std::endl; */
+    
         std::string line;
         while (std::getline(file, line)) { 
             std::istringstream iss(line);
             std::string timeStr, floorButton;
             int floor, floorsToMove;
-
+    
             if (!(iss >> timeStr >> floor >> floorButton >> floorsToMove)) {
                 std::cerr << "Incorrect line format: " << line << std::endl;
                 continue;
             }
-
+    
+    
             std::vector<uint8_t> packetInfo = createData(timeStr, floorButton, floor, floorsToMove);
-            /* std::cout << timeStr << ": " << floor << ": " << floorButton << ": " << floorsToMove << std::endl; */
-            /* printPacket(packetInfo); */
-
             sendPacket(packetInfo, packetInfo.size(), InetAddress::getLocalHost(), SCHEDULER);
         }
     }
+
     
 };
 

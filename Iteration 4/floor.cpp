@@ -6,7 +6,7 @@
 
 int main() {
 
-    Floor<ElevatorEvent> floorReader("elevator.txt");
+    Floor<ElevatorEvent> floorReader("elevators.txt");
     std::thread floorThread(std::ref(floorReader));
     floorThread.join();
 }
