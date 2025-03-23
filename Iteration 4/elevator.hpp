@@ -139,6 +139,7 @@ private:
 
     void handleDoorFault() {
         state = ElevatorState::MinorFault;
+        std::this_thread::sleep_for(std::chrono::seconds(2));
         std::cout << "[Elevator" << id << "] Door Timer Fault: Door is stuck!" << std::endl;
         recoverDoor();
     }
