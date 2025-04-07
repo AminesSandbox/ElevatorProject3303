@@ -5,6 +5,8 @@
 #define FLOORNOTIFIER 24
 #define ELEVATOR_1 69
 #define ELEVATOR_2 70
+#define ELEVATOR_3 471
+#define ELEVATOR_4 472
 #define DISPLAY_CONSOLE 75
 #define DISPLAY_PORT 99
 
@@ -196,14 +198,15 @@ void alertElevator(Scheduler<ElevatorEvent>* scheduler) {
     while(true){
         ElevatorEvent event = scheduler->get();
         std::vector<uint8_t> data = scheduler->createData(event);
-        int result = 0;
+        int targetPort= 0;
 
-        if (i % 2 == 0) {
-            result = scheduler->sendPacket(data, data.size(), InetAddress::getLocalHost(), ELEVATOR_1);
+        switch (i % 4) {
+            case 0: targetPort = ELEVATOR_1; break;
+            case 1: targetPort = ELEVATOR_2; break;
+            case 2: targetPort = ELEVATOR_3; break;
+            case 3: targetPort = ELEVATOR_4; break;
         }
-        else {
-            result = scheduler->sendPacket(data, data.size(), InetAddress::getLocalHost(), ELEVATOR_2);
-        }
+        scheduler->sendPacket(data, data.size(), InetAddress::getLocalHost(), targetPort);        
         i++;
     }
 }
