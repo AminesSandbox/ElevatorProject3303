@@ -1,5 +1,5 @@
-CXX = g++ -std=c++11
-#CXXFLAGS = 
+CC = gcc -std=c11
+#CFLAGS = 
 
 DSTS = scheduler floor elevator display test_sendPacket test
 
