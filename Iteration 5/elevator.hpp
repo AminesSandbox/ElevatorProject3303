@@ -139,6 +139,9 @@ public:
             std::vector<uint8_t> data = createData(item);
             std::this_thread::sleep_for(std::chrono::seconds(1)); 
             sendPacket(data, data.size(), InetAddress::getLocalHost(), FLOORREADER);  
+            
+            state = ElevatorState::Idle;
+            sendDisplayUpdate();
             return;  
         }
         if (item.fault == "Major") {

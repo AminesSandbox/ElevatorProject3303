@@ -14,7 +14,7 @@
 #include <chrono>
 #include <sstream>
 
-/*
+
 // Test ElevatorEvent structure
 TEST_CASE("ElevatorEvent displays correct message") {
     struct tm timestamp = {};
@@ -142,7 +142,7 @@ TEST_CASE("Elevator transitions through all states correctly when moving") {
 
     elevatorThread.join();  
 }
-*/
+
 TEST_CASE("Test if elevator enters Minor Fault state") {
 
     Scheduler<ElevatorEvent> scheduler(23);
@@ -191,13 +191,18 @@ TEST_CASE("Test if elevator enters Minor Fault state") {
 }
 
 TEST_CASE ("Testing Capacity Limit (Overflow (5ppl))") {
-    
+    Scheduler<ElevatorEvent> scheduler(23);
+    Scheduler<ElevatorEvent> floorNotifier(24);
+    Elevator<ElevatorEvent> elevator(69, 1);
 
+    struct tm timestamp = {};
+    ElevatorEvent event(timestamp, 7, "Up", 6, 7, "None");
 
-}
+    std::thread elevatorThread([&]() {
+        elevator.processRequest(event);  // Start moving elevator to floor 6
+    });
 
-TEST_CASE ("Testing Capacity Limit (Underflow (0ppl))") {
-    
+    CHECK(elevator.getState() == ElevatorState::Idle);
 
-
+    elevatorThread.join();  
 }
