@@ -199,7 +199,7 @@ TEST_CASE ("Testing Capacity Limit (Overflow (5ppl))") {
     ElevatorEvent event(timestamp, 7, "Up", 6, 7, "None");
 
     std::thread elevatorThread([&]() {
-        elevator.processRequest(event);  // Start moving elevator to floor 6
+        elevator.processRequest(event); 
     });
 
     CHECK(elevator.getState() == ElevatorState::Idle);
