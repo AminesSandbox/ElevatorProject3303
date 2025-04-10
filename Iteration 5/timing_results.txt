@@ -1,0 +1,46 @@
+Average Total Time: 1m26.071s
+Average Number of events processed: 162
+Average Time per elevator event = 86.071s/162 = 0.531s
+
+Average Total time Confidence interval = 86.07125 +- 0.0393 (86.0319, 86.1106)
+The confidence interval shows the values below are reasonable as they are within the range.
+
+Instrumentation was added to display_and_floor.cpp, where the display and floor files are ran
+at the same so the program can start tracking as soon as we run this file. The display file
+logs all elevators states, so the total event count is tracked here from the 4 elevators running.
+We run this program with the time command on linux to get the total time taken for all events to
+process. The program stops running once all events are processed, which happens after all the 
+elevators turn to IDLE/SHUTDOWN state 7 times (multiple times since the input file intentionally
+puts breaks in elevators running). The average time for an event to run is derived from the 
+total time / # of events. 
+
+The data is listed below for 4 runs:
+
+Run 1:
+real    1m26.060s
+user    0m0.000s
+sys     0m0.048s
+Total:  1m26.108
+Number of events processed: 162
+
+Run 2:
+real    1m26.032s
+user    0m0.007s
+sys     0m0.020s
+Total:  1m26.059s
+Number of events processed: 162
+
+Run3:
+real    1m26.035s
+user    0m0.003s
+sys     0m0.025s
+Total:  1m26.063s
+Number of events processed: 
+Number of events processed: 162
+
+Run4:
+real    1m26.030s
+user    0m0.008s
+sys     0m0.017s
+Total:  1m26.055s
+Number of events processed: 162
